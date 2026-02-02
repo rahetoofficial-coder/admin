@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대출랜드 - 관리자 광고 등록</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; background: #f8f9fa; padding: 20px; color: #333; }
+        .admin-box { max-width: 700px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #007bff; margin-bottom: 30px; }
+        .section { margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .section h3 { font-size: 18px; color: #555; margin-bottom: 15px; border-left: 4px solid #007bff; padding-left: 10px; }
+        label { display: block; font-size: 13px; color: #666; margin-bottom: 5px; margin-top: 10px; }
+        input, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        #saveBtn { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; transition: 0.3s; }
+        #saveBtn:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+
+<div class="admin-box">
+    <h2>🚀 광고사이트 상세 등록</h2>
+
+    <div class="section">
+        <label>메인 광고 제목</label>
+        <input type="text" id="title" placeholder="예: 무직자 저신용 당일입금 가능">
+    </div>
+
+    <div class="section">
+        <h3>🏢 업체정보</h3>
+        <label>업체명</label>
+        <input type="text" id="companyName" placeholder="업체명 입력">
+        <label>연락처</label>
+        <input type="text" id="phone" placeholder="010-0000-0000">
+        <label>등록번호</label>
+        <input type="text" id="regNumber" placeholder="대부업 등록번호">
+        <label>등록기관</label>
+        <input type="text" id="agency" placeholder="예: 서울 강남구청">
+        <label>영업소 주소</label>
+        <input type="text" id="address" placeholder="전체 주소 입력">
+    </div>
+
+    <div class="section">
+        <h3>💰 상품정보</h3>
+        <div class="grid">
+            <div><label>월 금리</label><input type="text" id="monthlyRate" placeholder="연 1.6% 이내"></div>
+            <div><label>연 금리</label><input type="text" id="yearlyRate" placeholder="연 20% 이내"></div>
+            <div><label>대출한도</label><input type="text" id="limit" placeholder="최대 5,000만원"></div>
+            <div><label>상환방식</label><input type="text" id="repayment" placeholder="원리금균등상환"></div>
+            <div><label>상환기간</label><input type="text" id="period" placeholder="최대 60개월"></div>
+            <div><label>연체금리</label><input type="text" id="overdueRate" placeholder="약정금리 + 3%"></div>
+            <div><label>추가비용</label><input type="text" id="extraFee" placeholder="없음"></div>
+            <div><label>중도상환수수료</label><input type="text" id="prepayFee" placeholder="없음"></div>
+        </div>
+        <label for="region">가능 지역</label>
+        <select id="region" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px;">
+            <option value="전국">전국</option>
+            <option value="서울">서울</option>
+            <option value="경기">경기</option>
+            <option value="인천">인천</option>
+            <option value="부산">부산</option>
+            <option value="대구">대구</option>
+            <option value="광주">광주</option>
+            <option value="대전">대전</option>
+        </select>
+
+        <label for="loanType" style="margin-top: 15px;">상품 종류</label>
+        <select id="loanType" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px;">
+            <option value="소액대출">소액대출</option>
+            <option value="직장인">직장인</option>
+            <option value="사업자">사업자</option>
+            <option value="저신용">저신용</option>
+            <option value="당일대출">당일대출</option>
+        </select>
+    </div>
+
+    <button id="saveBtn">DB에 광고 등록하기</button>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAYd6PZFWAoXDnz80l_1-0EDtkDxAkQFy4",
+        authDomain: "laos-project-ff295.firebaseapp.com",
+        projectId: "laos-project-ff295",
+        storageBucket: "laos-project-ff295.firebasestorage.app",
+        messagingSenderId: "7764846397",
+        appId: "1:7764846397:web:8977b486e092c0f7d24754",
+        measurementId: "G-LMD3B020W7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+        const adData = {
+            title: document.getElementById('title').value,
+            company_name: document.getElementById('companyName').value,
+            reg_number: document.getElementById('regNumber').value,
+            phone: document.getElementById('phone').value,
+            agency: document.getElementById('agency').value,
+            address: document.getElementById('address').value,
+            monthly_rate: document.getElementById('monthlyRate').value,
+            yearly_rate: document.getElementById('yearlyRate').value,
+            limit: document.getElementById('limit').value,
+            repayment: document.getElementById('repayment').value,
+            period: document.getElementById('period').value,
+            overdue_rate: document.getElementById('overdueRate').value,
+            extra_fee: document.getElementById('extraFee').value,
+            prepay_fee: document.getElementById('prepayFee').value,
+            region: document.getElementById('region').value,
+            loan_type: document.getElementById('loanType').value,
+            created_at: new Date()
+        };
+
+        try {
+            const docRef = await addDoc(collection(db, "ads"), adData);
+            alert("✅ 광고가 성공적으로 등록되었습니다!");
+            window.location.reload(); 
+        } catch (e) {
+            console.error("실패 원인: ", e);
+            alert("❌ 등록 실패! 규칙(Rules) 설정을 확인하세요.");
+        }
+    });
+</script>
+
+</body>
+</html>
