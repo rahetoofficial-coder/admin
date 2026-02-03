@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대출랜드 - 리스팅 관리</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; background: #f8f9fa; padding: 20px; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #007bff; margin-bottom: 30px; }
+        .back-btn { display: inline-block; padding: 10px 15px; background: #6c757d; color: white; border-radius: 5px; text-decoration: none; margin-top: 20px;}
+        .back-btn:hover { background: #5a6268; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        button { padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer; }
+        .edit-btn { background: #007bff; color: white; }
+        .delete-btn { background: #dc3545; color: white; }
+        .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 700px; border-radius: 10px; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; }
+        .close:hover, .close:focus { color: black; text-decoration: none; cursor: pointer; }
+        .modal-body { max-height: 60vh; overflow-y: auto; }
+        label { display: block; font-size: 13px; color: #666; margin-bottom: 5px; margin-top: 10px; }
+        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📊 등록된 리스팅 관리</h2>
+        <div id="listingsTableContainer"></div>
+        <a href="admin.html" class="back-btn">⬅️ 광고 등록 페이지로 돌아가기</a>
+    </div>
+
+    <!-- The Modal -->
+    <div id="editModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>리스팅 수정</h2>
+        <div class="modal-body">
+            <input type="hidden" id="edit-docId">
+            <label>메인 광고 제목</label>
+            <input type="text" id="edit-title">
+            <h3>🏢 업체정보</h3>
+            <label>업체명</label>
+            <input type="text" id="edit-companyName">
+            <label>연락처</label>
+            <input type="text" id="edit-phone">
+            <label>등록번호</label>
+            <input type="text" id="edit-regNumber">
+            <label>등록기관</label>
+            <input type="text" id="edit-agency">
+            <label>영업소 주소</label>
+            <input type="text" id="edit-address">
+            <h3>💰 상품정보</h3>
+            <div class="grid">
+                <div><label>월 금리</label><input type="text" id="edit-monthlyRate"></div>
+                <div><label>연 금리</label><input type="text" id="edit-yearlyRate"></div>
+                <div><label>대출한도</label><input type="text" id="edit-limit"></div>
+                <div><label>상환방식</label><input type="text" id="edit-repayment"></div>
+                <div><label>상환기간</label><input type="text" id="edit-period"></div>
+                <div><label>연체금리</label><input type="text" id="edit-overdueRate"></div>
+                <div><label>추가비용</label><input type="text" id="edit-extraFee"></div>
+                <div><label>중도상환수수료</label><input type="text" id="edit-prepayFee"></div>
+            </div>
+            <label for="edit-region">가능 지역</label>
+            <select id="edit-region">
+                <option value="전국">전국</option>
+                <option value="서울">서울</option>
+                <option value="경기">경기</option>
+                <option value="인천">인천</option>
+                <option value="부산">부산</option>
+                <option value="대구">대구</option>
+                <option value="광주">광주</option>
+                <option value="대전">대전</option>
+            </select>
+            <label for="edit-loanType">상품 종류</label>
+            <select id="edit-loanType">
+                <option value="소액대출">소액대출</option>
+                <option value="직장인">직장인</option>
+                <option value="사업자">사업자</option>
+                <option value="저신용">저신용</option>
+                <option value="당일대출">당일대출</option>
+            </select>
+        </div>
+        <div style="text-align: right; margin-top: 20px;">
+            <button id="updateBtn" class="edit-btn">완료</button>
+            <button id="deleteBtn" class="delete-btn">매물 삭제</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAYd6PZFWAoXDnz80l_1-0EDtkDxAkQFy4",
+            authDomain: "laos-project-ff295.firebaseapp.com",
+            projectId: "laos-project-ff295",
+            storageBucket: "laos-project-ff295.firebasestorage.app",
+            messagingSenderId: "7764846397",
+            appId: "1:7764846397:web:8977b486e092c0f7d24754",
+            measurementId: "G-LMD3B020W7"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const modal = document.getElementById("editModal");
+        const span = document.getElementsByClassName("close")[0];
+
+        span.onclick = function() {
+          modal.style.display = "none";
+        }
+
+        window.onclick = function(event) {
+          if (event.target == modal) {
+            modal.style.display = "none";
+          }
+        }
+
+        async function loadListings() {
+            const listingsContainer = document.getElementById('listingsTableContainer');
+            listingsContainer.innerHTML = '<p style="text-align: center;">리스팅을 불러오는 중...</p>';
+
+            try {
+                const adsCollection = collection(db, "ads");
+                const q = query(adsCollection, orderBy("created_at", "desc"));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    listingsContainer.innerHTML = '<p style="text-align: center;">등록된 리스팅이 없습니다.</p>';
+                    return;
+                }
+
+                let tableHtml = '<table><thead><tr><th>제목</th><th>업체명</th><th>등록일</th><th>액션</th></tr></thead><tbody>';
+                querySnapshot.forEach(doc => {
+                    const ad = doc.data();
+                    const date = ad.created_at ? new Date(ad.created_at.toDate()).toLocaleString() : 'N/A';
+                    tableHtml += `
+                        <tr>
+                            <td>${ad.title || 'N/A'}</td>
+                            <td>${ad.company_name || 'N/A'}</td>
+                            <td>${date}</td>
+                            <td><button class="edit-btn" onclick="viewDetails('${doc.id}')">상세보기</button></td>
+                        </tr>
+                    `;
+                });
+                tableHtml += '</tbody></table>';
+                listingsContainer.innerHTML = tableHtml;
+
+            } catch (e) {
+                console.error("리스팅 로딩 실패: ", e);
+                listingsContainer.innerHTML = '<p style="text-align: center; color: red;">리스팅을 불러오는 중 오류가 발생했습니다.</p>';
+            }
+        }
+        
+        window.viewDetails = async (id) => {
+            const docRef = doc(db, "ads", id);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const ad = docSnap.data();
+                document.getElementById('edit-docId').value = id;
+                document.getElementById('edit-title').value = ad.title || '';
+                document.getElementById('edit-companyName').value = ad.company_name || '';
+                document.getElementById('edit-phone').value = ad.phone || '';
+                document.getElementById('edit-regNumber').value = ad.reg_number || '';
+                document.getElementById('edit-agency').value = ad.agency || '';
+                document.getElementById('edit-address').value = ad.address || '';
+                document.getElementById('edit-monthlyRate').value = ad.monthly_rate || '';
+                document.getElementById('edit-yearlyRate').value = ad.yearly_rate || '';
+                document.getElementById('edit-limit').value = ad.limit || '';
+                document.getElementById('edit-repayment').value = ad.repayment || '';
+                document.getElementById('edit-period').value = ad.period || '';
+                document.getElementById('edit-overdueRate').value = ad.overdue_rate || '';
+                document.getElementById('edit-extraFee').value = ad.extra_fee || '';
+                document.getElementById('edit-prepayFee').value = ad.prepay_fee || '';
+                document.getElementById('edit-region').value = ad.region || '전국';
+                document.getElementById('edit-loanType').value = ad.loan_type || '소액대출';
+                
+                modal.style.display = "block";
+            } else {
+                alert("해당 리스팅을 찾을 수 없습니다.");
+            }
+        };
+
+        document.getElementById('updateBtn').addEventListener('click', async () => {
+            const docId = document.getElementById('edit-docId').value;
+            if (!docId) {
+                alert("오류: 문서 ID를 찾을 수 없습니다.");
+                return;
+            }
+
+            const adData = {
+                title: document.getElementById('edit-title').value,
+                company_name: document.getElementById('edit-companyName').value,
+                phone: document.getElementById('edit-phone').value,
+                reg_number: document.getElementById('edit-regNumber').value,
+                agency: document.getElementById('edit-agency').value,
+                address: document.getElementById('edit-address').value,
+                monthly_rate: document.getElementById('edit-monthlyRate').value,
+                yearly_rate: document.getElementById('edit-yearlyRate').value,
+                limit: document.getElementById('edit-limit').value,
+                repayment: document.getElementById('edit-repayment').value,
+                period: document.getElementById('edit-period').value,
+                overdue_rate: document.getElementById('edit-overdueRate').value,
+                extra_fee: document.getElementById('edit-extraFee').value,
+                prepay_fee: document.getElementById('edit-prepayFee').value,
+                region: document.getElementById('edit-region').value,
+                loan_type: document.getElementById('edit-loanType').value,
+            };
+
+            try {
+                const docRef = doc(db, "ads", docId);
+                await updateDoc(docRef, adData);
+                alert("✅ 리스팅이 성공적으로 업데이트되었습니다!");
+                modal.style.display = "none";
+                loadListings();
+            } catch (e) {
+                console.error("업데이트 실패: ", e);
+                alert("❌ 업데이트 실패!");
+            }
+        });
+
+        document.getElementById('deleteBtn').addEventListener('click', async () => {
+            const docId = document.getElementById('edit-docId').value;
+            if (!docId) {
+                alert("오류: 문서 ID를 찾을 수 없습니다.");
+                return;
+            }
+
+            if (confirm("정말로 이 리스팅을 삭제하시겠습니까?")) {
+                try {
+                    await deleteDoc(doc(db, "ads", docId));
+                    alert("🗑️ 리스팅이 삭제되었습니다.");
+                    modal.style.display = "none";
+                    loadListings();
+                } catch (e) {
+                    console.error("삭제 실패: ", e);
+                    alert("❌ 삭제 실패!");
+                }
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', loadListings);
+    </script>
+</body>
+</html>
